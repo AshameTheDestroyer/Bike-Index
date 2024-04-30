@@ -86,7 +86,7 @@ const Footer = styled.footer`
 
 type TheftCaseCardProps = TheftCase;
 
-export default function TheftCaseCard(props: TheftCaseCardProps): React.ReactElement {
+export default function TheftCaseCard(_props: TheftCaseCardProps): React.ReactElement {
     return (
         <Card className="theft-case-card">
             <Figure>
