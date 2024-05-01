@@ -3,6 +3,7 @@ import ReactDOM from "react-dom/client";
 import { HashRouter, Route, Routes } from "react-router-dom";
 
 import "./index.scss";
+import "react-lazy-load-image-component/src/effects/blur.css";
 
 import "./constants/Extensions.ts";
 

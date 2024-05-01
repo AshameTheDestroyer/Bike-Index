@@ -1,14 +1,17 @@
 import React from "react";
 import styled from "styled-components";
-import "react-lazy-load-image-component/src/effects/blur.css";
+import { useSearchParams } from "react-router-dom";
 import { LazyLoadImage } from "react-lazy-load-image-component";
 
 import Page from "../components/Page";
 import Heading from "../components/Headings";
+import LinkButton from "../components/LinkButton";
+import MessageContainer from "../components/MessageContainer";
 import TheftCaseDisplayer from "../components/TheftCaseDisplayer";
 
 import logo from "../assets/icons/logo.svg";
 import banner from "../assets/images/banner.jpg";
+import forbidden_icon from "../assets/icons/forbidden_icon.svg";
 
 const Header = styled.header`
     --inner-padding: 2rem;
@@ -57,6 +60,10 @@ const Banner = styled.figure`
 `;
 
 export default function Home(): React.ReactElement {
+    const [searchParams, _setSearchParams] = useSearchParams();
+    const page = Number(searchParams.get("page") ?? 1);
+    const RESULTS_PER_PAGE = 10;
+
     return (
         <Page id="home-page">
             <Header>
@@ -72,7 +79,17 @@ export default function Home(): React.ReactElement {
                     />
                 </Banner>
             </Header>
-            <TheftCaseDisplayer />
+            {
+                page <= 0 ?
+                    <MessageContainer
+                        src={forbidden_icon}
+                        alt="Forbidden icon."
+                        message="Wrong page!"
+                    >
+                        <LinkButton $link="./">Go back</LinkButton>
+                    </MessageContainer> :
+                    <TheftCaseDisplayer page={page} resultsPerPage={RESULTS_PER_PAGE} />
+            }
         </Page>
     );
 }

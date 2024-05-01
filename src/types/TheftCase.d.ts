@@ -3,13 +3,13 @@ type TheftCase = {
     title: string;
     status: string;
     image?: string;
-    foundDate: Date;
-    location: string;
-    stealingDate: Date;
+    location?: string;
+    stealingDate?: Date;
     description?: string;
 
     extraInformation?: {
         serial?: string;
+        foundDate?: Date;
         frameModel?: string;
         frameColours?: string;
         Manufacturer?: string;

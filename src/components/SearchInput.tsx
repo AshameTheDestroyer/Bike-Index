@@ -14,7 +14,7 @@ const Field = styled.div`
     border-radius: 10px;
     color: var(--background-colour);
     background-color: var(--main-colour);
-    box-shadow: 0px 1px 3px 1px var(--half-transparent);
+    box-shadow: var(--box-shadow);
 
     &>button {
         height: 2.5rem;

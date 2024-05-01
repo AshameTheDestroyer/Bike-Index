@@ -22,6 +22,9 @@ html {
     --half-transparent: #0000007C;
     --half-white-transparent: #FFFFFF7C;
 
+    --text-shadow: 1px 1px 2px var(--half-transparent);
+    --box-shadow: 0px 1px 3px 1px var(--half-transparent);
+
     font-size: 62.5%;
 }
 
@@ -55,4 +58,11 @@ body {
     border-radius: 100rem;
     background-color: var(--main-colour);
     border: 2px solid var(--half-transparent);
+}
+
+strong {
+    font-weight: bold;
+    text-shadow: var(--text-shadow);
+
+    color: var(--main-colour);
 }
