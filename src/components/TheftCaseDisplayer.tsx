@@ -6,6 +6,7 @@ import Button from "./Button";
 import SearchInput from "./SearchInput";
 import TheftCaseCard from "./TheftCaseCard";
 
+import empty_icon from "../assets/icons/empty_icon.svg";
 import error_icon from "../assets/icons/error_icon.svg";
 import filter_icon from "../assets/icons/filter_icon.svg";
 import spinner_icon from "../assets/icons/spinner_icon.svg";
@@ -66,10 +67,10 @@ const MessageContainer = styled.section`
 `;
 
 const Content = styled.main`
-    display: flex;
-    flex-wrap: wrap;
-    place-content: center start;
-    place-items: center start;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(20rem, 30rem));
+    place-content: center;
+    place-items: center;
     gap: 4rem;
 `;
 
@@ -80,20 +81,49 @@ const Footer = styled.footer`
     gap: 2rem;
 `;
 
-type TheftCaseDisplayerProps = {
-    theftCases: Array<TheftCase>;
-};
-
-export default function TheftCaseDisplayer(props: TheftCaseDisplayerProps): React.ReactElement {
+export default function TheftCaseDisplayer(): React.ReactElement {
     const [searchTerm, setSearchTerm] = useState("");
-
-    const { isLoading, data, error } = useFetch("https://bikeindex.org:443/api/v3/search?page=1&per_page=10&location=IP&distance=10&stolenness=stolen", {
+    const { isLoading, data, error } = useFetch(`https://bikeindex.org:443/api/v3/search?page=1&per_page=10&location=IP&distance=10&stolenness=stolen&query=${searchTerm}`, {
         depends: [searchTerm],
         formatter: (response) => response.json(),
     });
+    if (data) console.log(data);
+
+
+    const theftCases = data == null ? [] :
+        (data.bikes as Array<Record<string, any>>).map<TheftCase>(datum => ({
+            id: datum.id,
+            title: datum.title,
+            status: datum.status,
+            foundDate: new Date(),
+            image: datum.large_img,
+            location: datum.location_found,
+            description: datum.description,
+            stealingDate: new Date(Number(datum.date_stolen)),
+            extraInformation: {
+                serial: datum.serial,
+                frameModel: datum.frame_model,
+                frameColours: datum.frame_colors,
+                Manufacturer: datum.manufacturer_name,
+            },
+        }));
+
+    const dataIsLoaded = !isLoading && !error;
+    const dataIsEmpty = theftCases.length == 0;
+
+    useEffect(() => {
+        FetchData();
+    }, []);
 
     function OnInputSearch(e: React.FormEvent<HTMLInputElement>): void {
         setSearchTerm((e.target as HTMLInputElement).value);
+    }
+
+    function FetchData() {
+        setSearchTerm(previousValue => previousValue + " ");
+        setTimeout(() => {
+            setSearchTerm(previousValue => previousValue.slice(0, -1));
+        }, 1);
     }
 
     return (
@@ -109,47 +139,66 @@ export default function TheftCaseDisplayer(props: TheftCaseDisplayerProps): Reac
                     </FilterButton>
                 </div>
             </Header>
+
+            {(() => {
+                if (isLoading) { return <LoadingMessage />; }
+                if (error) { return <ErrorMessage TryAgainCallback={FetchData} />; }
+                if (dataIsEmpty) { return <EmptyMessage />; }
+
+                return (
+                    <Content> {
+                        theftCases.map(theftCase =>
+                            <TheftCaseCard key={theftCase?.id ?? 0} {...theftCase} />
+                        )
+                    } </Content>
+                );
+            })()}
+
             {
-                isLoading ?
-                    <MessageContainer>
-                        <img src={spinner_icon} alt="Spinner icon." />
-                        <p>Wait for a second...</p>
-                    </MessageContainer> :
-                    error ?
-                        <MessageContainer>
-                            <img src={error_icon} alt="Error icon." />
-                            <p>An error occurred...</p>
-                            <Button
-                                onClick={_e => {
-                                    setSearchTerm(previousValue => previousValue + " ");
-                                    setTimeout(() => {
-                                        setSearchTerm(previousValue => previousValue.slice(0, -1));
-                                    }, 1);
-                                }}
-                            >
-                                Try Again
-                            </Button>
-                        </MessageContainer> :
-                        <>
-                            <div>{JSON.stringify(data)}</div>
-                            <Content> {
-                                props.theftCases
-                                    .map(theftCase =>
-                                        <TheftCaseCard key={theftCase?.id ?? 0} {...theftCase} />
-                                    )
-                            } </Content>
-                            <Footer>
-                                <Button $isRounded $width={2}>{"<"}</Button>
-                                <Button $isRounded $width={2}>1</Button>
-                                <Button $isRounded $width={2}>2</Button>
-                                <Button $isRounded $width={2}>3</Button>
-                                <Button $isRounded $width={2}>4</Button>
-                                ...
-                                <Button $isRounded $width={2}>100</Button>
-                                <Button $isRounded $width={2}>{">"}</Button>
-                            </Footer>
-                        </>
+                dataIsLoaded && !dataIsEmpty &&
+                <Footer>
+                    <Button $isRounded $width={2}>{"<"}</Button>
+                    <Button $isRounded $width={2}>1</Button>
+                    <Button $isRounded $width={2}>2</Button>
+                    <Button $isRounded $width={2}>3</Button>
+                    <Button $isRounded $width={2}>4</Button>
+                    ...
+                    <Button $isRounded $width={2}>100</Button>
+                    <Button $isRounded $width={2}>{">"}</Button>
+                </Footer>
             }
         </Main>
+    );
+}
+
+function LoadingMessage(): React.ReactElement {
+    return (
+        <MessageContainer>
+            <img src={spinner_icon} alt="Spinner icon." />
+            <p>Wait for a second...</p>
+        </MessageContainer>
+    );
+}
+
+type ErrorMessageProps = {
+    TryAgainCallback: () => void;
+};
+
+function ErrorMessage(props: ErrorMessageProps): React.ReactElement {
+    return (
+        <MessageContainer>
+            <img src={error_icon} alt="Error icon." />
+            <p>An error occurred...</p>
+            <Button onClick={props.TryAgainCallback}>Try Again</Button>
+        </MessageContainer>
+    );
+}
+
+function EmptyMessage(): React.ReactElement {
+    return (
+        <MessageContainer>
+            <img src={empty_icon} alt="Empty icon." />
+            <p>No results were found</p>
+        </MessageContainer>
     );
 }

@@ -1,14 +1,15 @@
 import React from "react";
 import styled from "styled-components";
+import { LazyLoadImage } from "react-lazy-load-image-component";
 
 import Heading from "./Headings";
 
 import location_icon from "../assets/icons/location_icon.svg";
+import no_image_icon from "../assets/icons/no_image_icon.svg";
 
 const Card = styled.div`
     --padding: 1.5rem;
     
-    max-width: 25rem;
     aspect-ratio: 5 / 8;
     
     display: grid;
@@ -34,12 +35,27 @@ const Figure = styled.figure`
     
     margin: calc(var(--padding) * -1);
     margin-bottom: var(--padding);
+
+    overflow: hidden;
     
     &>img {
+        width: 100%;
         position: absolute;
         inset: 0;
 
+        margin: auto;
+
         background-color: var(--main-colour);
+
+        object-fit: cover;
+        object-position: center;
+
+        &[data-no-image-icon] {
+            background-color: transparent;
+            
+            object-fit: contain;
+            height: 75%;
+        }
     }
 `;
 
@@ -56,6 +72,8 @@ const IconParagraph = styled.p`
 
 const Description = styled.p`
     --line-count: 4;
+
+    color: var(--half-white-transparent);
     
     overflow: hidden;
     display: -webkit-box;
@@ -86,28 +104,30 @@ const Footer = styled.footer`
 
 type TheftCaseCardProps = TheftCase;
 
-export default function TheftCaseCard(_props: TheftCaseCardProps): React.ReactElement {
+export default function TheftCaseCard(props: TheftCaseCardProps): React.ReactElement {
     return (
         <Card className="theft-case-card">
-            <Figure>
-                <img src="" alt="Bike theft case reported image" />
-            </Figure>
+            <Figure> {
+                props.image != null ?
+                    <LazyLoadImage src={props.image} alt="Bike theft case reported image" /> :
+                    <img src={no_image_icon} alt="No image icon." data-no-image-icon />
+            } </Figure>
             <Main>
-                <Heading $size={3}>Case Title</Heading>
+                <Heading $size={3}>{props.title}</Heading>
                 <IconParagraph>
                     <img src={location_icon} />
-                    <span>Location</span>
+                    <span>{props.location}</span>
                 </IconParagraph>
-                <Description>Lorem ipsum dolor sit amet consectetur adipisicing elit. Odit nulla doloribus voluptates iusto, consectetur doloremque vero nisi aspernatur eius rem? A esse corporis accusamus nulla rem mollitia porro consectetur harum.</Description>
+                <Description>{props.location}</Description>
             </Main>
             <Footer>
                 <p>
-                    <span>Theft since</span>
-                    <span>1/1/2024</span>
+                    <span>Stolen since</span>
+                    <span>{props.stealingDate.toDateString()}</span>
                 </p>
                 <p>
-                    <span>Reported at</span>
-                    <span>1/1/2024</span>
+                    <span>Found since</span>
+                    <span>{props.foundDate.toDateString()}</span>
                 </p>
             </Footer>
         </Card>

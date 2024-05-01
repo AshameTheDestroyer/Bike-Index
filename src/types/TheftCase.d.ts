@@ -1,9 +1,18 @@
 type TheftCase = {
     id: string;
     title: string;
+    status: string;
     image?: string;
-    theftDate: Date;
-    reportDate: Date;
+    foundDate: Date;
     location: string;
-    description: string;
+    stealingDate: Date;
+    description?: string;
+
+    extraInformation?: {
+        serial?: string;
+        frameModel?: string;
+        frameColours?: string;
+        Manufacturer?: string;
+    };
+
 };

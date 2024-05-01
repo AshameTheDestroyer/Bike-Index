@@ -72,9 +72,7 @@ export default function Home(): React.ReactElement {
                     />
                 </Banner>
             </Header>
-            <TheftCaseDisplayer
-                theftCases={new Array(10).fill(null)}
-            />
+            <TheftCaseDisplayer />
         </Page>
     );
 }
