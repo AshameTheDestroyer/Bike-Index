@@ -3,7 +3,7 @@ import styled from "styled-components";
 
 import Heading from "./Headings";
 
-import location_icon from "../svgs/location_icon.svg";
+import location_icon from "../assets/icons/location_icon.svg";
 
 const Card = styled.div`
     --padding: 1.5rem;
