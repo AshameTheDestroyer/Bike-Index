@@ -32,7 +32,7 @@ const Header = styled.header`
     color: var(--background-colour);
     background-color: var(--main-colour);
 
-    transition: opacity 250ms;
+    transition: opacity 250ms, transform 500ms;
 
     overflow: hidden;
 
@@ -44,8 +44,9 @@ const Header = styled.header`
         linear-gradient(315deg, var(--main-lighter-colour) 25%, transparent 25%) 0px 0/ 80px 80px,
         linear-gradient(45deg, var(--main-darker-colour) 25%, var(--main-colour) 25%) 0px 0/ 80px 80px;
 
-    &.is-transparent {
+    &.is-hidden {
         opacity: 0.5;
+        transform: translateY(-100%);
     }
 
     &>h1 {
@@ -110,9 +111,9 @@ export default function Home(): React.ReactElement {
         const headerOffset_ = headerReference.current.offsetTop;
 
         if (headerOffset_ >= headerReference.current.clientHeight) {
-            headerReference.current.classList.add("is-transparent");
+            headerReference.current.classList.add("is-hidden");
         } else {
-            headerReference.current.classList.remove("is-transparent");
+            headerReference.current.classList.remove("is-hidden");
         }
     }
 
