@@ -1,12 +1,12 @@
+import axios from "axios";
 import styled from "styled-components";
-import useFetch from "react-fetch-hook";
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useDebounce } from "@react-hooks-hub/use-debounce";
 
 import Slider from "./Slider";
 import Button from "./Button";
-import LinkButton from "./LinkButton";
+import DropDown from "./DropDown";
 import SearchInput from "./SearchInput";
 import TheftCaseCard from "./TheftCaseCard";
 import MessageContainer from "./MessageContainer";
@@ -32,6 +32,7 @@ const Header = styled.header`
 
     &>div {
         display: flex;
+        flex-wrap: wrap;
         place-content: center;
         place-items: center;
         gap: 2rem;
@@ -40,20 +41,44 @@ const Header = styled.header`
     }
 `;
 
-const FilterButton = styled(Button)`
+const FilterButton = styled(DropDown)`
     display: flex;
     place-content: center;
     place-items: center;
     gap: 1rem;
 
-    &>img {
+    img {
         width: 2.5rem;
 
         transition: filter 250ms;
     }
 
-    &:is(:hover, :focus-visible)>img {
+    &:is(:hover, :focus):not(:has(.drop-down-wrapper:hover)) img {
         filter: invert();
+    }
+
+    .drop-down-wrapper {
+        padding: 0;
+        
+        background-color: var(--main-colour);
+
+        transition: grid-template-rows 250ms, box-shadow 250ms, padding 250ms;
+
+        .drop-down-container {
+            border-radius: inherit;
+
+            button {
+                place-content: center start;
+                place-items: center start;
+            }
+        }
+    }
+
+    &[data-is-open=true] {
+
+        .drop-down-wrapper {
+            padding: 3px;
+        }
     }
 `;
 
@@ -69,11 +94,16 @@ const Content = styled.main`
 
 const Footer = styled.footer`
     display: grid;
-    grid-template-columns: auto auto auto;
+    grid-template-columns: auto auto 1fr auto auto;
+    place-self: center;
     grid-auto-flow: column;
     place-content: center stretch;
     place-items: center stretch;
     gap: 2rem;
+
+    &>[data-is-hidden=true] {
+        visibility: hidden;
+    }
 `;
 
 type TheftCaseDisplayerProps = {
@@ -84,6 +114,7 @@ type TheftCaseDisplayerProps = {
 export default function TheftCaseDisplayer(props: TheftCaseDisplayerProps): React.ReactElement {
     const [searchParams, setSearchParams] = useSearchParams();
     const searchTerm = searchParams.get("query") ?? "";
+    const stolenness = searchParams.get("stolenness") as "all" | "stolen" | "non" ?? "all";
 
     const OnInputSearchDebounced = useDebounce(OnInputSearch, 400);
 
@@ -91,7 +122,7 @@ export default function TheftCaseDisplayer(props: TheftCaseDisplayerProps): Reac
         location: "IP",
         distance: "10",
         query: searchTerm,
-        stolenness: "stolen",
+        stolenness: stolenness,
         page: props.page.toString(),
         per_page: props.resultsPerPage.toString(),
     });
@@ -100,28 +131,28 @@ export default function TheftCaseDisplayer(props: TheftCaseDisplayerProps): Reac
         location: "IP",
         distance: "10",
         query: searchTerm,
-        stolenness: "stolen",
+        stolenness: stolenness,
     });
 
-    const {
-        isLoading: isLoadingTheftCases,
+    const [{
         data: theftCaseData,
         error: errorOnTheftCases,
-    } = useFetch(theftCaseURL, {
-        depends: [searchTerm],
-        formatter: (response) => response.json(),
+        isLoading: isLoadingTheftCases,
+    }, setTheftCaseDataStatus] = useState({
+        data: null,
+        error: false,
+        isLoading: false,
     });
 
-    const {
-        isLoading: isLoadingTotalCount,
+    const [{
         data: totalCountData,
         error: errorOnTotalCount,
-    } = useFetch(totalCountURL, {
-        depends: [searchTerm],
-        formatter: (response) => response.json(),
+        isLoading: isLoadingTotalCount,
+    }, setTotalCountDataStatus] = useState({
+        data: null,
+        error: false,
+        isLoading: false,
     });
-
-    console.log(theftCaseData, totalCountData);
 
     const isLoading = isLoadingTheftCases || isLoadingTotalCount;
     const error = errorOnTheftCases || errorOnTotalCount;
@@ -133,7 +164,13 @@ export default function TheftCaseDisplayer(props: TheftCaseDisplayerProps): Reac
     const firstResultIndex = (props.page - 1) * props.resultsPerPage + 1;
     const lastResultIndex = Math.min(props.page * props.resultsPerPage, totalBikeCount);
 
-    const totalPageCount = Math.ceil(totalBikeCount / props.resultsPerPage);
+    const totalPageCount = Math.ceil((() => {
+        switch (stolenness) {
+            case "all": return totalBikeCount;
+            case "stolen": return stolenBikeCount;
+            case "non": return nonStolenBikeCount;
+        }
+    })() / props.resultsPerPage);
 
     const theftCases = theftCaseData == null ? [] :
         (theftCaseData.bikes as Array<Record<string, any>>).map<TheftCase>(datum => ({
@@ -157,7 +194,7 @@ export default function TheftCaseDisplayer(props: TheftCaseDisplayerProps): Reac
 
     useEffect(() => {
         FetchData();
-    }, [props.page]);
+    }, [searchTerm, props.page, stolenness]);
 
     useEffect(() => {
         if (dataIsLoaded && !dataIsEmpty) {
@@ -175,132 +212,265 @@ export default function TheftCaseDisplayer(props: TheftCaseDisplayerProps): Reac
         });
     }
 
-    function FetchData() {
-        setSearchParams(previousValue => {
-            previousValue.set("query", searchTerm + "_");
-            return previousValue;
+    function FetchData(type: "theft-case" | "total-count" | "both" = "both") {
+        if (type == "both") {
+            FetchData("theft-case");
+            FetchData("total-count");
+            return;
+        }
+
+        const url = type == "theft-case" ? theftCaseURL : totalCountURL;
+        const setterCallback = ((data: {
+            data: any;
+            error: boolean;
+            isLoading: boolean;
+        }) => {
+            switch (type) {
+                case "theft-case":
+                    setTheftCaseDataStatus({ ...data });
+                    break;
+                case "total-count":
+                    setTotalCountDataStatus({ ...data });
+                    break;
+            }
         });
 
-        setTimeout(() => {
+        setterCallback({
+            data: null,
+            error: false,
+            isLoading: true,
+        });
 
-            setSearchParams(previousValue => {
-                previousValue.set("query", searchTerm.slice(0, -1));
-                return previousValue;
-            });
-        }, 1);
+        console.log(url);
+
+        axios.get(url)
+            .then(result => setterCallback({
+                data: result.data,
+                error: false,
+                isLoading: false,
+            }))
+            .catch(_error => setterCallback({
+                data: null,
+                error: true,
+                isLoading: false,
+            }));
+    }
+
+    function UpdateStolenness(stolenness: string) {
+        setSearchParams(previousValue => {
+            previousValue.delete("page");
+            previousValue.set("stolenness", stolenness);
+            return previousValue;
+        });
+    }
+
+    function UpdatePage(page: number) {
+        setSearchParams(previousValue => {
+            previousValue.set("page", page.toString());
+            return previousValue;
+        });
     }
 
     return (
         <Main>
-            <Header>
-                {
-                    isLoading ?
-                        <p> {
-                            isLoadingTheftCases ?
-                                "Waiting for results to compute..." :
-                                "Now computing results..."
-                        } </p> :
-                        dataIsEmpty ? <></> :
-                            <p>
-                                Showing results from&nbsp;
-                                <strong>{firstResultIndex.toNth()}</strong>&nbsp;
-                                to&nbsp;
-                                <strong>{lastResultIndex.toNth()}</strong>&nbsp;
-                                case, with&nbsp;
-                                <strong>{stolenBikeCount}</strong>&nbsp;
-                                stolen, and&nbsp;
-                                <strong>{nonStolenBikeCount}</strong>&nbsp;
-                                non-stolen,&nbsp;
-                                (<strong>{totalBikeCount}</strong> in total)
-                            </p>
-                }
-                <div>
-                    <SearchInput
-                        $onButtonClick={FetchData}
-                        onChange={OnInputSearchDebounced}
-                    />
-                    <FilterButton>
-                        <img src={filter_icon} alt="Filter icon." />
-                        <span>Filter by</span>
-                    </FilterButton>
-                </div>
-            </Header>
+            <HeaderContent
+                isLoading={isLoading}
+                dataIsEmpty={dataIsEmpty}
+                totalBikeCount={totalBikeCount}
+                lastResultIndex={lastResultIndex}
+                stolenBikeCount={stolenBikeCount}
+                firstResultIndex={firstResultIndex}
+                isLoadingTheftCases={isLoadingTheftCases}
+                nonStolenBikeCount={nonStolenBikeCount}
 
-            {(() => {
-                if (isLoading) {
-                    return (
-                        <MessageContainer
-                            src={spinner_icon}
-                            alt="Spinner icon."
-                            message="Wait for a second..."
-                        />
-                    );
-                } else if (error) {
-                    return (
-                        <MessageContainer
-                            src={error_icon}
-                            alt="Error icon."
-                            message="An error occurred..."
-                        >
-                            <Button onClick={FetchData}>Try Again</Button>
-                        </MessageContainer>
-                    );
-                } else if (dataIsEmpty) {
-                    return (
-                        <MessageContainer
-                            src={empty_icon}
-                            alt="Empty icon."
-                            message="No results were found"
-                        />
-                    );
-                }
+                FetchData={FetchData}
+                UpdateStolenness={UpdateStolenness}
+                OnInputSearch={OnInputSearchDebounced}
+            />
 
-                return (
-                    <Content> {
-                        theftCases.map(theftCase =>
-                            <TheftCaseCard key={theftCase?.id ?? 0} {...theftCase} />
-                        )
-                    } </Content>
-                );
-            })()}
+            <MainContent
+                error={error}
+                isLoading={isLoading}
+                theftCases={theftCases}
+                dataIsEmpty={dataIsEmpty}
 
-            {
-                dataIsLoaded && !dataIsEmpty &&
-                <Footer>
-                    {
-                        props.page > 1 &&
-                        <>
-                            <LinkButton $isRounded $width={2} $link={`./?page=${1}&query=${searchTerm}`}>{"<<"}</LinkButton>
-                            <LinkButton $isRounded $width={2} $link={`./?page=${props.page - 1}&query=${searchTerm}`}>{"<"}</LinkButton>
-                        </>
-                    }
-                    <Slider> {
-                        new Array(totalPageCount)
-                            .fill(null)
-                            .map((_, i) =>
-                                <LinkButton
-                                    key={i}
-                                    data-pagination-index={i + 1}
-                                    className={`pagination-button`}
+                FetchData={FetchData}
+            />
 
-                                    $width={2}
-                                    $isRounded
-                                    $isPrimary={props.page == i + 1}
-                                    $link={`./?page=${i + 1}&query=${searchTerm}`}
+            <FooterContent
+                page={props.page}
+                searchTerm={searchTerm}
+                dataIsEmpty={dataIsEmpty}
+                dataIsLoaded={dataIsLoaded}
+                totalPageCount={totalPageCount}
 
-                                    children={i + 1}
-                                />
-                            )
-                    } </Slider>
-                    {
-                        props.page < totalPageCount &&
-                        <>
-                            <LinkButton $isRounded $width={2} $link={`./?page=${props.page + 1}&query=${searchTerm}`}>{">"}</LinkButton>
-                            <LinkButton $isRounded $width={2} $link={`./?page=${totalPageCount}&query=${searchTerm}`}>{">>"}</LinkButton>
-                        </>
-                    }
-                </Footer>
-            }
+                UpdatePage={UpdatePage}
+            />
+
         </Main>
+    );
+}
+
+type HeaderContentProps = {
+    isLoading: boolean;
+    dataIsEmpty: boolean;
+    totalBikeCount: number;
+    lastResultIndex: number;
+    stolenBikeCount: number;
+    firstResultIndex: number;
+    nonStolenBikeCount: number;
+    isLoadingTheftCases: boolean;
+
+    UpdateStolenness: (stolenness: string) => void;
+    OnInputSearch: (e: React.FormEvent<HTMLInputElement>) => void;
+    FetchData: (type?: "theft-case" | "total-count" | "both") => void;
+};
+
+function HeaderContent(props: HeaderContentProps): React.ReactElement {
+    return (
+        <Header>
+            {
+                props.isLoading ? <p> {
+                    props.isLoadingTheftCases ?
+                        "Waiting for results to compute..." :
+                        "Now computing results..."
+                } </p> : props.dataIsEmpty ? <></> :
+                    <p>
+                        Showing results from&nbsp;
+                        <strong>{props.firstResultIndex.toNth()}</strong>&nbsp;
+                        to&nbsp;
+                        <strong>{props.lastResultIndex.toNth()}</strong>&nbsp;
+                        case, with&nbsp;
+                        <strong>{props.stolenBikeCount}</strong>&nbsp;
+                        stolen, and&nbsp;
+                        <strong>{props.nonStolenBikeCount}</strong>&nbsp;
+                        non-stolen,&nbsp;
+                        (<strong>{props.totalBikeCount}</strong> in total)
+                    </p>
+            }
+            <div>
+                <SearchInput
+                    $onButtonClick={_e => props.FetchData()}
+                    onChange={props.OnInputSearch}
+                />
+                <FilterButton text="Filter by" src={filter_icon} alt="Filter icon.">
+                    <Button onClick={_e => props.UpdateStolenness("all")}>All</Button>
+                    <Button onClick={_e => props.UpdateStolenness("stolen")}>Stolen</Button>
+                    <Button onClick={_e => props.UpdateStolenness("non")}>Non-Stolen</Button>
+                </FilterButton>
+            </div>
+        </Header>
+    );
+}
+
+type MainContentProps = {
+    error: boolean;
+    isLoading: boolean;
+    dataIsEmpty: boolean;
+    theftCases: Array<TheftCase>;
+
+    FetchData: (type?: "theft-case" | "total-count" | "both") => void;
+};
+
+function MainContent(props: MainContentProps): React.ReactElement {
+    if (props.isLoading) {
+        return (
+            <MessageContainer
+                src={spinner_icon}
+                alt="Spinner icon."
+                message="Wait for a second..."
+            />
+        );
+    }
+
+    if (props.error) {
+        return (
+            <MessageContainer
+                src={error_icon}
+                alt="Error icon."
+                message="An error occurred..."
+            >
+                <Button onClick={_e => props.FetchData()}>Try Again</Button>
+            </MessageContainer>
+        );
+    }
+
+    if (props.dataIsEmpty) {
+        return (
+            <MessageContainer
+                src={empty_icon}
+                alt="Empty icon."
+                message="No results were found"
+            />
+        );
+    }
+
+    return (
+        <Content> {
+            props.theftCases.map(theftCase =>
+                <TheftCaseCard key={theftCase.id} {...theftCase} />
+            )
+        } </Content>
+    );
+}
+
+type FooterContentProps = {
+    page: number;
+    searchTerm: string;
+    dataIsEmpty: boolean;
+    dataIsLoaded: boolean;
+    totalPageCount: number;
+
+    UpdatePage: (page: number) => void;
+};
+
+function FooterContent(props: FooterContentProps): React.ReactElement {
+    if (!props.dataIsLoaded || props.dataIsEmpty) {
+        return <></>;
+    }
+
+    function NavigationButton(props_: React.HTMLAttributes<HTMLButtonElement> & {
+        text: string;
+        page: number;
+        basePage?: number;
+        isOpened?: boolean;
+    }) {
+        return (
+            <Button
+                $width={2}
+                $isRounded
+                $isPrimary={props_.isOpened}
+                data-is-hidden={props.page == props_.basePage}
+                data-pagination-index={props_.basePage == null ? props_.page : null}
+
+                onClick={_e => props.UpdatePage(props_.page)}
+            >
+                {props_.text}
+            </Button>
+        );
+    }
+
+    return (
+        <Footer>
+            <NavigationButton text="<<" basePage={1} page={1} />
+            <NavigationButton text="<" basePage={1} page={props.page - 1} />
+            <Slider> {
+                new Array(props.totalPageCount)
+                    .fill(null)
+                    .map((_, i) =>
+                        <NavigationButton
+                            key={i}
+                            className={`pagination-button`}
+
+                            page={i + 1}
+                            isOpened={props.page == i + 1}
+
+                            text={(i + 1).toString()}
+                        />
+                    )
+            } </Slider>
+            <NavigationButton text=">" basePage={props.totalPageCount} page={props.page + 1} />
+            <NavigationButton text=">>" basePage={props.totalPageCount} page={props.totalPageCount} />
+        </Footer>
     );
 }
