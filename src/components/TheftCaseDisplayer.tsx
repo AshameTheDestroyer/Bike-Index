@@ -275,6 +275,7 @@ export default function TheftCaseDisplayer(props: TheftCaseDisplayerProps): Reac
         <Main>
             <HeaderContent
                 isLoading={isLoading}
+                stolenness={stolenness}
                 dataIsEmpty={dataIsEmpty}
                 totalBikeCount={totalBikeCount}
                 lastResultIndex={lastResultIndex}
@@ -314,6 +315,7 @@ export default function TheftCaseDisplayer(props: TheftCaseDisplayerProps): Reac
 
 type HeaderContentProps = {
     isLoading: boolean;
+    stolenness: string;
     dataIsEmpty: boolean;
     totalBikeCount: number;
     lastResultIndex: number;
@@ -357,9 +359,9 @@ function HeaderContent(props: HeaderContentProps): React.ReactElement {
                     onChange={props.OnInputSearch}
                 />
                 <FilterButton text="Filter by" src={filter_icon} alt="Filter icon.">
-                    <Button onClick={_e => props.UpdateStolenness("all")}>All</Button>
-                    <Button onClick={_e => props.UpdateStolenness("stolen")}>Stolen</Button>
-                    <Button onClick={_e => props.UpdateStolenness("non")}>Non-Stolen</Button>
+                    <Button $isPrimary={props.stolenness == "all"} onClick={_e => props.UpdateStolenness("all")}>All</Button>
+                    <Button $isPrimary={props.stolenness == "stolen"} onClick={_e => props.UpdateStolenness("stolen")}>Stolen</Button>
+                    <Button $isPrimary={props.stolenness == "non"} onClick={_e => props.UpdateStolenness("non")}>Non-Stolen</Button>
                 </FilterButton>
             </div>
         </Header>
