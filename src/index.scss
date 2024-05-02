@@ -15,6 +15,7 @@ html {
 
     --main-colour: #3C5B6F;
     --main-darker-colour: #153448;
+    --main-lighter-colour: #648194;
 
     --secondary-colour: #DFD0B8;
     --secondary-darker-colour: #948979;
@@ -39,6 +40,19 @@ body {
 
     color: var(--fore-darker-colour);
     background-color: var(--background-colour);
+
+    --s: 15rem;
+    --c1: var(--background-colour);
+    --c2: var(--background-darker-colour);
+    --_g: var(--c1) 6.25%, var(--c2) 6.3% 18.75%, var(--c1) 18.8% 31.25%,
+        var(--c2) 31.3% 43.75%, var(--c1) 43.8% 56.25%, var(--c2) 56.3% 68.75%, #0000 0;
+
+    background:
+        radial-gradient(var(--s) at 100% 0, var(--_g)),
+        radial-gradient(var(--s) at 0 0, var(--_g)),
+        radial-gradient(var(--s) at 0 100%, var(--_g)),
+        radial-gradient(var(--s) at 100% 100%, var(--_g)) var(--c1);
+    background-size: var(--s) var(--s);
 }
 
 ::-webkit-scrollbar {
