@@ -45,12 +45,14 @@ const Input = styled.input.attrs({
 
 type SearchInputProps = React.HtmlHTMLAttributes<HTMLInputElement> & {
     value?: string;
+    $ref?: React.LegacyRef<HTMLDivElement>;
+
     $onButtonClick?: React.HtmlHTMLAttributes<HTMLButtonElement>["onClick"];
 };
 
 export default function SearchInput(props: SearchInputProps): React.ReactElement {
     return (
-        <Field>
+        <Field ref={props.$ref}>
             <Input {...props} value={props.value} />
             <button onClick={props.$onButtonClick}>
                 <img src={search_icon} alt="Search icon." />

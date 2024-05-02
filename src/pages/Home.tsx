@@ -1,6 +1,6 @@
-import React from "react";
 import styled from "styled-components";
-import { useSearchParams } from "react-router-dom";
+import React, { useEffect, useRef, } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { LazyLoadImage } from "react-lazy-load-image-component";
 
 import Page from "../components/Page";
@@ -16,6 +16,9 @@ import forbidden_icon from "../assets/icons/forbidden_icon.svg";
 const Header = styled.header`
     --inner-padding: 2rem;
     
+    position: sticky;
+    top: 0;
+
     display: flex;
     place-content: center start;
     place-items: center start;
@@ -23,12 +26,17 @@ const Header = styled.header`
 
     margin: calc(var(--padding) * -1);
     margin-bottom: var(--padding);
-    padding: var(--inner-padding);
+    padding: var(--inner-padding) calc(var(--inner-padding) * 2);
 
+    box-shadow: var(--box-shadow);
     color: var(--background-colour);
     background-color: var(--main-colour);
 
+    transition: opacity 250ms;
+
     overflow: hidden;
+
+    z-index: 10;
 
     background:
         linear-gradient(135deg, var(--main-lighter-colour) 25%, transparent 25%) -40px 0/ 80px 80px,
@@ -36,8 +44,25 @@ const Header = styled.header`
         linear-gradient(315deg, var(--main-lighter-colour) 25%, transparent 25%) 0px 0/ 80px 80px,
         linear-gradient(45deg, var(--main-darker-colour) 25%, var(--main-colour) 25%) 0px 0/ 80px 80px;
 
+    &.is-transparent {
+        opacity: 0.5;
+    }
+
     &>h1 {
+        text-shadow: var(--text-shadow-double);
+
         margin-right: auto;
+
+        z-index: 1;
+        
+        cursor: pointer;
+    }
+
+    #logo {
+        -webkit-filter: drop-shadow(3px 3px 2px #0000007C);
+        filter: drop-shadow(3px 3px 2px #0000007C);
+        
+        z-index: 1;
     }
 `;
 
@@ -66,15 +91,36 @@ const Banner = styled.figure`
 `;
 
 export default function Home(): React.ReactElement {
+    const headerReference = useRef<HTMLElement>(null);
     const [searchParams, _setSearchParams] = useSearchParams();
     const page = Number(searchParams.get("page") ?? 1);
+    const Navigate = useNavigate();
+
     const RESULTS_PER_PAGE = 10;
+
+    useEffect(() => {
+        document.addEventListener("scroll", OnBodyScroll);
+
+        return () => {
+            document.body.removeEventListener("scroll", OnBodyScroll);
+        };
+    }, []);
+
+    function OnBodyScroll(_e: Event) {
+        const headerOffset_ = headerReference.current.offsetTop;
+
+        if (headerOffset_ >= headerReference.current.clientHeight) {
+            headerReference.current.classList.add("is-transparent");
+        } else {
+            headerReference.current.classList.remove("is-transparent");
+        }
+    }
 
     return (
         <Page id="home-page">
-            <Header>
+            <Header ref={headerReference}>
                 <Logo id="logo" src={logo} alt="The logo of the website." />
-                <Heading $size={1}>Bike Index</Heading>
+                <Heading $size={1} onClick={_e => Navigate("./")}>Bike Index</Heading>
                 <Banner>
                     <LazyLoadImage
                         id="banner"

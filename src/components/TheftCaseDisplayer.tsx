@@ -1,7 +1,7 @@
 import axios from "axios";
 import styled from "styled-components";
-import React, { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
+import React, { useEffect, useRef, useState } from "react";
 import { useDebounce } from "@react-hooks-hub/use-debounce";
 
 import Slider from "./Slider";
@@ -112,6 +112,7 @@ type TheftCaseDisplayerProps = {
 };
 
 export default function TheftCaseDisplayer(props: TheftCaseDisplayerProps): React.ReactElement {
+    const searchInputReference = useRef<HTMLDivElement>(null);
     const [searchParams, setSearchParams] = useSearchParams();
     const searchTerm = searchParams.get("query") ?? "";
     const stolenness = searchParams.get("stolenness") as "all" | "stolen" | "non" ?? "all";
@@ -194,6 +195,7 @@ export default function TheftCaseDisplayer(props: TheftCaseDisplayerProps): Reac
 
     useEffect(() => {
         FetchData();
+        searchInputReference.current.querySelector("input").value = searchTerm;
     }, [searchTerm, props.page, stolenness]);
 
     useEffect(() => {
@@ -241,8 +243,6 @@ export default function TheftCaseDisplayer(props: TheftCaseDisplayerProps): Reac
             isLoading: true,
         });
 
-        console.log(url);
-
         axios.get(url)
             .then(result => setterCallback({
                 data: result.data,
@@ -280,8 +280,9 @@ export default function TheftCaseDisplayer(props: TheftCaseDisplayerProps): Reac
                 lastResultIndex={lastResultIndex}
                 stolenBikeCount={stolenBikeCount}
                 firstResultIndex={firstResultIndex}
-                isLoadingTheftCases={isLoadingTheftCases}
                 nonStolenBikeCount={nonStolenBikeCount}
+                isLoadingTheftCases={isLoadingTheftCases}
+                searchInputReference={searchInputReference}
 
                 FetchData={FetchData}
                 UpdateStolenness={UpdateStolenness}
@@ -320,6 +321,7 @@ type HeaderContentProps = {
     firstResultIndex: number;
     nonStolenBikeCount: number;
     isLoadingTheftCases: boolean;
+    searchInputReference: React.MutableRefObject<HTMLDivElement>;
 
     UpdateStolenness: (stolenness: string) => void;
     OnInputSearch: (e: React.FormEvent<HTMLInputElement>) => void;
@@ -350,6 +352,7 @@ function HeaderContent(props: HeaderContentProps): React.ReactElement {
             }
             <div>
                 <SearchInput
+                    $ref={props.searchInputReference}
                     $onButtonClick={_e => props.FetchData()}
                     onChange={props.OnInputSearch}
                 />
@@ -429,7 +432,7 @@ function FooterContent(props: FooterContentProps): React.ReactElement {
         return <></>;
     }
 
-    function NavigationButton(props_: React.HTMLAttributes<HTMLButtonElement> & {
+    function PaginationButton(props_: React.HTMLAttributes<HTMLButtonElement> & {
         text: string;
         page: number;
         basePage?: number;
@@ -437,6 +440,8 @@ function FooterContent(props: FooterContentProps): React.ReactElement {
     }) {
         return (
             <Button
+                className="pagination-button"
+
                 $width={2}
                 $isRounded
                 $isPrimary={props_.isOpened}
@@ -452,13 +457,13 @@ function FooterContent(props: FooterContentProps): React.ReactElement {
 
     return (
         <Footer>
-            <NavigationButton text="<<" basePage={1} page={1} />
-            <NavigationButton text="<" basePage={1} page={props.page - 1} />
+            <PaginationButton text="<<" basePage={1} page={1} />
+            <PaginationButton text="<" basePage={1} page={props.page - 1} />
             <Slider> {
                 new Array(props.totalPageCount)
                     .fill(null)
                     .map((_, i) =>
-                        <NavigationButton
+                        <PaginationButton
                             key={i}
                             className={`pagination-button`}
 
@@ -469,8 +474,8 @@ function FooterContent(props: FooterContentProps): React.ReactElement {
                         />
                     )
             } </Slider>
-            <NavigationButton text=">" basePage={props.totalPageCount} page={props.page + 1} />
-            <NavigationButton text=">>" basePage={props.totalPageCount} page={props.totalPageCount} />
+            <PaginationButton text=">" basePage={props.totalPageCount} page={props.page + 1} />
+            <PaginationButton text=">>" basePage={props.totalPageCount} page={props.totalPageCount} />
         </Footer>
     );
 }
