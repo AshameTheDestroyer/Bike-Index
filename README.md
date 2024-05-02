@@ -12,3 +12,13 @@ Things I have done:
 Things I couldn't achieve using the API:
 - Filtering bike theft cases by date range, (couldn't find any endpoint for that).
 - Displaying the reporting date, (couldn't find any data given by the endpoints for that).
+
+Technologies I used:
+- ReactJS.
+- SCSS (only a little).
+- TypeScript.
+- StyledComponents.
+- Axios.
+- LazyLoadingImages.
+
+Overall it was a great time having an assignment to do to be reviewed 😅.
