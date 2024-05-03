@@ -7,7 +7,7 @@ import Page from "../components/Page";
 import Heading from "../components/Headings";
 import LinkButton from "../components/LinkButton";
 import MessageContainer from "../components/MessageContainer";
-import TheftCaseDisplayer from "../components/TheftCaseDisplayer";
+import TheftCaseDisplayer from "../components/TheftCaseDisplayer/TheftCaseDisplayer";
 
 import logo from "../assets/icons/logo.svg";
 import banner from "../assets/images/banner.jpg";

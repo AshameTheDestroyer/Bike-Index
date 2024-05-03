@@ -1,0 +1,1 @@
+type Stolenness = "all" | "stolen" | "non";
